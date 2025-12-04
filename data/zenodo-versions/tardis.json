@@ -20,12 +20,12 @@
     "doi": 14485351
   },
   {
-    "version": "release-2022.12.12",
-    "doi": 7428821
-  },
-  {
     "version": "release-2021.12.12",
     "doi": 5774392
+  },
+  {
+    "version": "release-2022.12.12",
+    "doi": 7428821
   },
   {
     "version": "release-2024.12.08",
@@ -264,12 +264,12 @@
     "doi": 5070808
   },
   {
-    "version": "release-2023.07.02",
-    "doi": 8104987
-  },
-  {
     "version": "release-2021.7.2.dev1+g58e4e79d",
     "doi": 5068283
+  },
+  {
+    "version": "release-2023.07.02",
+    "doi": 8104987
   },
   {
     "version": "release-2021.07.01",
@@ -332,12 +332,12 @@
     "doi": 7905191
   },
   {
-    "version": "release-2025.05.04",
-    "doi": 15334795
-  },
-  {
     "version": "release-2022.05.04",
     "doi": 6518540
+  },
+  {
+    "version": "release-2025.05.04",
+    "doi": 15334795
   },
   {
     "version": "release-2023.04.30",
@@ -568,6 +568,90 @@
     "doi": 4781778
   },
   {
+    "version": "v3.0.dev3526",
+    "doi": 4065592
+  },
+  {
+    "version": "v3.0.dev3439",
+    "doi": 3835959
+  },
+  {
+    "version": "v3.0.dev3409",
+    "doi": 3686373
+  },
+  {
+    "version": "v3.0.dev3500",
+    "doi": 3987472
+  },
+  {
+    "version": "v3.0-alpha.3",
+    "doi": 2799539
+  },
+  {
+    "version": "v3.0.dev4019",
+    "doi": 5034859
+  },
+  {
+    "version": "v3.0.dev3957",
+    "doi": 4776912
+  },
+  {
+    "version": "v3.0.dev3477",
+    "doi": 3941302
+  },
+  {
+    "version": "v3.0.dev3673",
+    "doi": 4284097
+  },
+  {
+    "version": "3.0.dev3388",
+    "doi": 3627733
+  },
+  {
+    "version": "v3.0.dev3424",
+    "doi": 3813677
+  },
+  {
+    "version": "v3.0.dev3458",
+    "doi": 3884310
+  },
+  {
+    "version": "v2.0.2",
+    "doi": 1292315
+  },
+  {
+    "version": "v2_test1",
+    "doi": 1213671
+  },
+  {
+    "version": "v2_test2",
+    "doi": 1213676
+  },
+  {
+    "version": "v2.0",
+    "doi": 1213132
+  },
+  {
+    "version": "v1.0.1",
+    "doi": 17630
+  },
+  {
+    "version": "v",
+    "doi": 3627351
+  },
+  {
+    "version": "v3.0.dev3769",
+    "doi": 4362656
+  },
+  {
+    "version": "v3.0.dev3425",
+    "doi": 3763762
+  },
+  {
+    "version": "v3.0.dev3970",
+    "doi": 4853970
+  },
+  {
     "version": "v3.0.dev3698",
     "doi": 4308103
   },
@@ -642,89 +726,5 @@
   {
     "version": "v3.0.dev3945",
     "doi": 4752091
-  },
-  {
-    "version": "v3.0.dev3526",
-    "doi": 4065592
-  },
-  {
-    "version": "v3.0.dev3439",
-    "doi": 3835959
-  },
-  {
-    "version": "v3.0.dev3409",
-    "doi": 3686373
-  },
-  {
-    "version": "v3.0.dev3500",
-    "doi": 3987472
-  },
-  {
-    "version": "v3.0-alpha.3",
-    "doi": 2799539
-  },
-  {
-    "version": "v3.0.dev4019",
-    "doi": 5034859
-  },
-  {
-    "version": "v3.0.dev3957",
-    "doi": 4776912
-  },
-  {
-    "version": "v3.0.dev3477",
-    "doi": 3941302
-  },
-  {
-    "version": "v3.0.dev3673",
-    "doi": 4284097
-  },
-  {
-    "version": "3.0.dev3388",
-    "doi": 3627733
-  },
-  {
-    "version": "v3.0.dev3424",
-    "doi": 3813677
-  },
-  {
-    "version": "v3.0.dev3458",
-    "doi": 3884310
-  },
-  {
-    "version": "v2_test1",
-    "doi": 1213671
-  },
-  {
-    "version": "v2_test2",
-    "doi": 1213676
-  },
-  {
-    "version": "v2.0",
-    "doi": 1213132
-  },
-  {
-    "version": "v",
-    "doi": 3627351
-  },
-  {
-    "version": "v3.0.dev3769",
-    "doi": 4362656
-  },
-  {
-    "version": "v3.0.dev3425",
-    "doi": 3763762
-  },
-  {
-    "version": "v3.0.dev3970",
-    "doi": 4853970
-  },
-  {
-    "version": "v2.0.2",
-    "doi": 1292315
-  },
-  {
-    "version": "v1.0.1",
-    "doi": 17630
   }
 ]
