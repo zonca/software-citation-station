@@ -125,9 +125,10 @@ export async function getZenodoVersionInfo(conceptDoi: string): Promise<ZenodoVe
     // Process each hit
     for (const hit of data.hits.hits) {
       if (!versionsSoFar.has(hit.metadata.version ?? '') && hit.metadata.version !== undefined) {
+        // Ensure DOI is always stored as string (Zenodo returns numeric IDs sometimes)
         versionAndDoi.push({
           version: hit.metadata.version,
-          doi: hit.id
+          doi: String(hit.id)
         });
         versionsSoFar.add(hit.metadata.version);
       } else {

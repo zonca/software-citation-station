@@ -62,9 +62,9 @@ describe('getZenodoVersionInfo', () => {
       hits: {
         total: 3,
         hits: [
-          { id: '12345', metadata: { version: '1.0.0' } },
-          { id: '12346', metadata: { version: '1.1.0' } },
-          { id: '12347', metadata: { version: '2.0.0' } }
+          { id: 12345, metadata: { version: '1.0.0' } },
+          { id: 12346, metadata: { version: '1.1.0' } },
+          { id: 12347, metadata: { version: '2.0.0' } }
         ]
       }
     };
@@ -81,6 +81,8 @@ describe('getZenodoVersionInfo', () => {
     expect(result[0]).toEqual({ version: '2.0.0', doi: '12347' });
     expect(result[1]).toEqual({ version: '1.1.0', doi: '12346' });
     expect(result[2]).toEqual({ version: '1.0.0', doi: '12345' });
+    // IDs returned as numbers should be coerced to strings
+    expect(typeof result[0].doi).toBe('string');
   });
 
   it('should handle empty results', async () => {
