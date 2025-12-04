@@ -4,7 +4,8 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+    # Run for PRs into any branch
+    branches: [ '**' ]
   workflow_dispatch: # Allow manual triggering
 
 jobs:
