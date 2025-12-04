@@ -124,16 +124,25 @@ export async function getZenodoVersionInfo(conceptDoi: string): Promise<ZenodoVe
     
     // Process each hit
     for (const hit of data.hits.hits) {
-      if (!versionsSoFar.has(hit.metadata.version ?? '') && hit.metadata.version !== undefined) {
-        // Ensure DOI is always stored as string (Zenodo returns numeric IDs sometimes)
-        versionAndDoi.push({
-          version: hit.metadata.version,
-          doi: String(hit.id)
-        });
-        versionsSoFar.add(hit.metadata.version);
-      } else {
+      const version = hit.metadata.version;
+
+      // Skip entries without a version before checking duplicates
+      if (version === undefined) {
         nBadVersions += 1;
+        continue;
       }
+
+      if (versionsSoFar.has(version)) {
+        nBadVersions += 1;
+        continue;
+      }
+
+      // Ensure DOI is always stored as string (Zenodo returns numeric IDs sometimes)
+      versionAndDoi.push({
+        version,
+        doi: String(hit.id)
+      });
+      versionsSoFar.add(version);
     }
     
     page += 1;

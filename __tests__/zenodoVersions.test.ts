@@ -130,6 +130,39 @@ describe('getZenodoVersionInfo', () => {
     expect(result[1]).toEqual({ version: '1.0.0', doi: '12345' });
   });
 
+  it('should ignore undefined versions before checking duplicates', async () => {
+    const mockResponse = {
+      hits: {
+        total: 2,
+        hits: [
+          { id: 'v0', metadata: { version: '' } }, // empty string is a valid (if odd) version
+          { id: 'missing', metadata: { version: undefined } } // should be skipped before duplicate check
+        ]
+      }
+    };
+
+    const originalHas = Set.prototype.has;
+    const hasSpy = jest.spyOn(Set.prototype, 'has');
+    hasSpy.mockImplementation(function (this: Set<unknown>, value: unknown) {
+      return originalHas.call(this, value);
+    });
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockResponse
+    });
+
+    const result = await getZenodoVersionInfo('10.5281/zenodo.1234567');
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ version: '', doi: 'v0' });
+    // Only one duplicate check (for the empty string version); undefined should not trigger has('')
+    expect(hasSpy.mock.calls.length).toBe(1);
+
+    hasSpy.mockRestore();
+  });
+
   it('should throw error on HTTP failure', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
