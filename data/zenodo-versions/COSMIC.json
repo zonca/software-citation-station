@@ -96,28 +96,28 @@
     "doi": "6981775"
   },
   {
-    "version": "v3.4.3-beta5",
-    "doi": "6982111"
+    "version": "3.4.3-beta",
+    "doi": "6981625"
   },
   {
     "version": "v3.4.3-beta1",
     "doi": "6981649"
   },
   {
-    "version": "3.4.3-beta",
-    "doi": "6981625"
+    "version": "v3.4.3-beta5",
+    "doi": "6982111"
   },
   {
     "version": "3.4.3-beta2",
     "doi": "6981668"
   },
   {
-    "version": "v3.4.3-beta2",
-    "doi": "6981692"
-  },
-  {
     "version": "v3.4.3-beta3",
     "doi": "6981732"
+  },
+  {
+    "version": "v3.4.3-beta2",
+    "doi": "6981692"
   },
   {
     "version": "3.4.2",
@@ -152,12 +152,12 @@
     "doi": "3905335"
   },
   {
-    "version": "v3.3.0a",
-    "doi": "3825662"
-  },
-  {
     "version": "v3.3.0c",
     "doi": "3825583"
+  },
+  {
+    "version": "v3.3.0a",
+    "doi": "3825662"
   },
   {
     "version": "v3.2.0",
