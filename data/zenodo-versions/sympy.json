@@ -24,12 +24,12 @@
     "doi": "12781882"
   },
   {
-    "version": "1.13.0rc2",
-    "doi": "11877827"
-  },
-  {
     "version": "1.13.0",
     "doi": "12691504"
+  },
+  {
+    "version": "1.13.0rc2",
+    "doi": "11877827"
   },
   {
     "version": "1.13.0rc3",
@@ -84,12 +84,12 @@
     "doi": "6299592"
   },
   {
-    "version": "sympy-1.10rc2",
-    "doi": "6205070"
-  },
-  {
     "version": "sympy-1.10",
     "doi": "6331748"
+  },
+  {
+    "version": "sympy-1.10rc2",
+    "doi": "6205070"
   },
   {
     "version": "sympy-1.9",
@@ -136,12 +136,12 @@
     "doi": "2629338"
   },
   {
-    "version": "sympy-1.4rc1",
-    "doi": "2620635"
-  },
-  {
     "version": "sympy-1.4",
     "doi": "2634633"
+  },
+  {
+    "version": "sympy-1.4rc1",
+    "doi": "2620635"
   },
   {
     "version": "sympy-1.3rc1",
