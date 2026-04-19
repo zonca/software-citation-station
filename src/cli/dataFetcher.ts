@@ -42,8 +42,9 @@ function getZenodoCachePath(packageName: string): string {
 
 /**
  * Check if cache should be refreshed based on daily schedule (after 6 AM UTC)
+ * Exported for testing purposes
  */
-function shouldRefreshCache(fetchedAt: string): boolean {
+export function shouldRefreshCache(fetchedAt: string): boolean {
   const fetched = new Date(fetchedAt);
   const now = new Date();
   
