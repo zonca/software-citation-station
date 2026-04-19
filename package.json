@@ -1,6 +1,7 @@
 {
   "name": "software-citation-station",
   "version": "1.0.0",
+  "type": "module",
   "description": "Software citation station with Zenodo version caching",
   "bin": {
     "scs": "./dist/cli/index.js"
