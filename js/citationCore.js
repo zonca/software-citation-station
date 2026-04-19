@@ -269,7 +269,7 @@ async function fetchZenodoBibtex(recordId) {
 /**
  * Validate a Zenodo DOI and return the number of versions found.
  * If a specific version DOI is entered, attempts to find the concept DOI.
- * 
+ *
  * @param {string} conceptDoi - The DOI to validate.
  * @returns {Promise<[number, string]>} Tuple of [versionCount, conceptDoi].
  */
@@ -277,17 +277,17 @@ async function validateZenodoDoi(conceptDoi) {
     if (conceptDoi === "") {
         return [-1, conceptDoi];
     }
-    
+
     const PAGE_SIZE = 100;
     const url = `https://zenodo.org/api/records?q=conceptdoi:"${conceptDoi}"&all_versions=true&size=${PAGE_SIZE}`;
-    
+
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
+
     // If no results, maybe user entered a specific version DOI
     if (data.hits.hits.length === 0) {
         const searchUrl = `https://zenodo.org/api/records?q=doi:"${conceptDoi}"&all_versions=true&size=${PAGE_SIZE}`;
@@ -296,7 +296,7 @@ async function validateZenodoDoi(conceptDoi) {
             throw new Error(`HTTP error! Status: ${searchResponse.status}`);
         }
         const searchData = await searchResponse.json();
-        
+
         if (searchData.hits.hits.length === 1) {
             // Found one result, retry with its concept DOI
             return await validateZenodoDoi(searchData.hits.hits[0].conceptdoi);
@@ -304,8 +304,198 @@ async function validateZenodoDoi(conceptDoi) {
             return [0, conceptDoi];
         }
     }
-    
+
     return [data.hits.total, conceptDoi];
+}
+
+/**
+ * Generate LaTeX acknowledgment string for selected packages.
+ *
+ * @param {Array} selectedPackages - Array of package selection objects:
+ *   {name, version?, features?, zenodoBibtex?, zenodoTag?}
+ * @param {Object} citationsData - Citations data (package name → metadata).
+ * @param {Object} bibtexTable - BibTeX table (tag → full entry).
+ * @param {boolean} includePreamble - Whether to include the preamble text.
+ * @returns {Object} {acknowledgments: string, featureSentences: string[]}.
+ */
+function generateAcknowledgment(selectedPackages, citationsData, bibtexTable, includePreamble = true) {
+    const ackParts = [];
+    const customAcks = [];
+    const featureSentences = [];
+
+    for (const pkg of selectedPackages) {
+        const pkgData = citationsData[pkg.name];
+        if (!pkgData) continue;
+
+        const tags = pkgData.tags || [];
+        const featureTagsRaw = pkgData.feature_tags;
+        const featureTagsData = featureTagsRaw ? parseFeatureTags(featureTagsRaw) : undefined;
+        const selectedFeatureData = [];
+
+        // Collect selected feature citations
+        if (featureTagsData && pkg.features && pkg.features.length > 0) {
+            for (const feature of pkg.features) {
+                const tagsForFeature = featureTagsData[feature];
+                if (tagsForFeature && tagsForFeature.length > 0) {
+                    selectedFeatureData.push({ name: feature, tags: tagsForFeature });
+                }
+            }
+        }
+
+        // Build acknowledgment string
+        let newAck = `\\texttt{${pkg.name}}`;
+        if (tags.length > 0 && tags[0] !== "") {
+            newAck += ` \\citep{${tags.join(",")}}`;
+        }
+
+        // Build feature sentence separately
+        if (selectedFeatureData.length > 0) {
+            const featureParts = selectedFeatureData.map(f =>
+                `\\texttt{${f.name}} \\citep{${f.tags.join(",")}}`
+            );
+            let featureList;
+            if (featureParts.length === 1) {
+                featureList = featureParts[0];
+            } else if (featureParts.length === 2) {
+                featureList = featureParts[0] + " and " + featureParts[1];
+            } else {
+                featureList = featureParts.slice(0, -1).join(", ") + ", and " + featureParts[featureParts.length - 1];
+            }
+            featureSentences.push(
+                `The following features of \\texttt{${pkg.name}} were used: ${featureList}.`
+            );
+        }
+
+        // Handle Zenodo version-specific citation
+        let customAck = pkgData.custom_citation || "";
+        const zenodoDoi = pkgData.zenodo_doi;
+
+        if (zenodoDoi && pkg.zenodoTag) {
+            const newTag = `${pkg.name}_${pkg.version || pkg.zenodoTag}`;
+            if (newAck.includes("\\citep{")) {
+                // Insert Zenodo tag into the first \citep{}
+                const citepIdx = newAck.indexOf("\\citep{");
+                const closeIdx = newAck.indexOf("}", citepIdx);
+                newAck = newAck.slice(0, closeIdx) + "," + newTag + newAck.slice(closeIdx);
+            } else {
+                // Insert right after \texttt{name}
+                const textttEnd = newAck.indexOf("}") + 1;
+                newAck = newAck.slice(0, textttEnd) + ` \\citep{${newTag}}` + newAck.slice(textttEnd);
+            }
+
+            // Handle custom acknowledgment with Zenodo tag
+            if (customAck) {
+                if (customAck.endsWith(".")) {
+                    customAck = customAck.slice(0, -1);
+                }
+                if (customAck.includes("\\citep") && customAck.endsWith("}")) {
+                    // Insert tag into existing \citep
+                    let openBraces = 0;
+                    for (let i = customAck.indexOf("\\citep") + 6; i < customAck.length; i++) {
+                        if (customAck[i] === "{") openBraces += 1;
+                        else if (customAck[i] === "}") openBraces -= 1;
+                        if (openBraces === 0) {
+                            customAck = customAck.slice(0, i) + "," + newTag + customAck.slice(i);
+                            break;
+                        }
+                    }
+                } else if (customAck) {
+                    customAck += ` \\citep{${newTag}}.`;
+                }
+            }
+        }
+
+        // Add to appropriate list
+        if (customAck) {
+            customAcks.push(customAck);
+        } else {
+            ackParts.push(newAck);
+        }
+    }
+
+    // Build final acknowledgment string
+    let acknowledgment = "";
+    if (includePreamble && ackParts.length > 0) {
+        acknowledgment = "This work made use of the following software packages: ";
+
+        if (ackParts.length === 1) {
+            acknowledgment += `${ackParts[0]}.`;
+        } else if (ackParts.length === 2) {
+            acknowledgment += `${ackParts[0]} and ${ackParts[1]}.`;
+        } else {
+            acknowledgment += ackParts.slice(0, -1).join(", ") + ", and " + ackParts.slice(-1) + ".";
+        }
+
+        if (featureSentences.length > 0) {
+            acknowledgment += " " + featureSentences.join(" ");
+        }
+    }
+
+    if (customAcks.length > 0) {
+        if (acknowledgment) acknowledgment += "\n\n";
+        acknowledgment += customAcks.join("\n\n");
+    }
+
+    return { acknowledgment, featureSentences };
+}
+
+/**
+ * Generate BibTeX entries for selected packages.
+ *
+ * @param {Array} selectedPackages - Array of package selection objects:
+ *   {name, version?, features?, zenodoBibtex?}
+ * @param {Object} citationsData - Citations data (package name → metadata).
+ * @param {Object} bibtexTable - BibTeX table (tag → full entry).
+ * @returns {string} Concatenated BibTeX entries.
+ */
+function generateBibtex(selectedPackages, citationsData, bibtexTable) {
+    const bibEntries = [];
+    const seenTags = new Set();
+
+    for (const pkg of selectedPackages) {
+        const pkgData = citationsData[pkg.name];
+        if (!pkgData) continue;
+
+        const tags = pkgData.tags || [];
+
+        // Add main BibTeX entries
+        for (const tag of tags) {
+            if (tag && bibtexTable[tag] && !seenTags.has(tag)) {
+                bibEntries.push(bibtexTable[tag]);
+                seenTags.add(tag);
+            }
+        }
+
+        // Add feature BibTeX entries
+        const featureTagsRaw = pkgData.feature_tags;
+        if (featureTagsRaw && pkg.features) {
+            const featureTagsData = parseFeatureTags(featureTagsRaw);
+            for (const feature of pkg.features) {
+                const featureTagList = featureTagsData[feature];
+                if (featureTagList) {
+                    for (const tag of featureTagList) {
+                        if (bibtexTable[tag] && !seenTags.has(tag)) {
+                            bibEntries.push(bibtexTable[tag]);
+                            seenTags.add(tag);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add Zenodo version-specific BibTeX
+        if (pkg.zenodoBibtex) {
+            bibEntries.push(pkg.zenodoBibtex);
+        }
+
+        // Add extra BibTeX if specified
+        const extraBibtex = pkgData.extra_bibtex;
+        if (extraBibtex) {
+            bibEntries.push(extraBibtex);
+        }
+    }
+
+    return bibEntries.join("\n\n");
 }
 
 // Export functions for use in other modules (ES modules)
@@ -319,5 +509,7 @@ export {
     parseCondaEnv,
     getZenodoVersionInfo,
     fetchZenodoBibtex,
-    validateZenodoDoi
+    validateZenodoDoi,
+    generateAcknowledgment,
+    generateBibtex
 };
