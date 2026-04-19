@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 /**
  * Comprehensive unit tests for Zenodo version fetching functionality
  */

@@ -1,110 +1,97 @@
 import { Command } from 'commander';
-import { fetchCitations, fetchBibtex } from '../dataFetcher.js';
-import { getVersionDoi, fetchZenodoBibtexLive } from '../zenodoFetcher.js';
-// @ts-ignore
-import { parsePackageInput, collectDependencies, generateAcknowledgment, generateBibtex, parseBibtex } from '../../../js/citationCore.js';
-import { Citations, CitationOutput } from '../types.js';
+import { parseBibtex, collectDependencies, generateAcknowledgment, generateBibtex, parsePackageInput } from '../../js/citationCore.js';
+import { fetchCitations, fetchBibtex, refreshCache } from '../dataFetcher.js';
+import { getZenodoVersionInfoCached, getZenodoBibtexInfo } from '../zenodoFetcher.js';
+import type { CitationOutput, ZenodoBibtexInfo } from '../types.js';
 
 export const citeCommand = new Command('cite')
-  .description('Generate citations for software packages')
-  .argument('[packages...]', 'Packages to cite (e.g. numpy, astropy==6.0.1, astropy[fitting])')
-  .option('-d, --dependencies-only', 'Output only resolved dependencies')
-  .option('-a, --acknowledgments', 'Output only LaTeX acknowledgments')
-  .option('-b, --bibtex', 'Output only BibTeX entries')
-  .option('-j, --json', 'Output as JSON')
-  .option('-f, --features <features>', 'Comma-separated features (applies to all packages)')
-  .option('--refresh-cache', 'Force refresh all cached data')
-  .action(async (packages: string[], options: any) => {
-    try {
-      const citations: Citations = await fetchCitations(options.refreshCache);
-      const bibtexRaw = await fetchBibtex(options.refreshCache);
-      const bibtexTable = parseBibtex(bibtexRaw);
-
-      let selectedPackageKeys: string[] = [];
-      let featureSelections: Record<string, string[]> = {};
-      let zenodoBibtexMap = new Map<string, { bibtex: string, tag: string }>();
-
-      // Parse --features global option
-      const globalFeatures = options.features ? options.features.split(',').map((f: string) => f.trim()) : [];
-
-      for (const pkgInput of packages) {
-        const parsed = parsePackageInput(pkgInput);
-        
-        // Find match in citations.json (case insensitive key check)
-        const match = Object.keys(citations).find(k => k.toLowerCase() === parsed.name.toLowerCase());
-        if (!match) {
-          console.warn(`Warning: Package "${parsed.name}" not found in citations data.`);
-          continue;
+    .description('Generate citations for software packages')
+    .argument('[packages...]', 'Package names (e.g., numpy, astropy==6.0.1, astropy[fitting,io])')
+    .option('-d, --dependencies-only', 'Output only resolved dependencies')
+    .option('-a, --acknowledgments', 'Output only LaTeX acknowledgments')
+    .option('-b, --bibtex', 'Output only BibTeX entries')
+    .option('-j, --json', 'Output as JSON')
+    .option('-f, --features <features>', 'Comma-separated features (applies to all packages)')
+    .option('--refresh-cache', 'Force refresh all cached data')
+    .action(async (packages: string[], options) => {
+        if (packages.length === 0) {
+            console.error('Error: At least one package name is required');
+            process.exit(1);
         }
 
-        selectedPackageKeys.push(match);
-        
-        // Combine features from input and global option
-        const features = [...(parsed.features || []), ...globalFeatures];
-        if (features.length > 0) {
-          featureSelections[match] = features;
+        if (options.refreshCache) {
+            refreshCache();
         }
 
-        // Handle versioned Zenodo citation
-        if (parsed.version && citations[match].zenodo_doi) {
-          const recordId = await getVersionDoi(match, citations[match].zenodo_doi, parsed.version);
-          if (recordId) {
-            const zenodoBibtex = await fetchZenodoBibtexLive(recordId, match);
-            zenodoBibtexMap.set(match, { 
-              bibtex: zenodoBibtex, 
-              tag: `${match}_${recordId}` 
-            });
-          } else {
-            console.warn(`Warning: Version "${parsed.version}" for package "${match}" not found on Zenodo. Using base citation.`);
-          }
+        const globalFeatures = options.features ? options.features.split(',').map(f => f.trim()) : undefined;
+        const parsedPackages = packages.map(p => parsePackageInput(p));
+
+        const citationsData = await fetchCitations(options.refreshCache);
+        const bibtexText = await fetchBibtex(options.refreshCache);
+        const bibtexTable = parseBibtex(bibtexText);
+
+        const allPackages = new Set<string>();
+        const dependencies: Record<string, string[]> = {};
+        const zenodoBibtexMap = new Map<string, ZenodoBibtexInfo>();
+        const featureSelections: Record<string, string[]> = {};
+
+        for (const pkg of parsedPackages) {
+            if (!citationsData[pkg.name]) {
+                console.warn(`Warning: Package '${pkg.name}' not found in citations data`);
+                continue;
+            }
+
+            allPackages.add(pkg.name);
+
+            const deps = collectDependencies(new Set(), pkg.name, citationsData);
+            deps.delete(pkg.name);
+            dependencies[pkg.name] = Array.from(deps);
+            deps.forEach(dep => allPackages.add(dep));
+
+            const features = pkg.features || globalFeatures;
+            if (features && features.length > 0) {
+                featureSelections[pkg.name] = features;
+            }
+
+            if (pkg.version && citationsData[pkg.name].zenodo_doi) {
+                const zenodoInfo = await getZenodoBibtexInfo(
+                    pkg.name,
+                    pkg.version,
+                    citationsData[pkg.name].zenodo_doi,
+                    options.refreshCache
+                );
+                if (zenodoInfo) {
+                    zenodoBibtexMap.set(pkg.name, zenodoInfo);
+                }
+            }
         }
-      }
 
-      // Resolve dependencies recursively
-      const allPackageKeys = new Set<string>();
-      for (const key of selectedPackageKeys) {
-        allPackageKeys.add(key);
-        collectDependencies(allPackageKeys, key, citations);
-      }
+        if (options.dependenciesOnly) {
+            console.log(JSON.stringify(dependencies, null, 2));
+            return;
+        }
 
-      const sortedAllKeys = Array.from(allPackageKeys).sort();
+        const selectedPackages = Array.from(allPackages);
+        const acknowledgments = generateAcknowledgment(selectedPackages, citationsData, featureSelections, zenodoBibtexMap);
+        const bibtex = generateBibtex(selectedPackages, citationsData, bibtexTable, featureSelections, zenodoBibtexMap);
 
-      // Generate outputs
-      const acknowledgment = generateAcknowledgment(selectedPackageKeys, citations, featureSelections, zenodoBibtexMap);
-      const bibtex = generateBibtex(selectedPackageKeys, citations, bibtexTable, featureSelections, zenodoBibtexMap);
-
-      if (options.json) {
-        const output: CitationOutput = {
-          packages: selectedPackageKeys,
-          timestamp: new Date().toISOString(),
-          dependencies: Object.fromEntries(
-            selectedPackageKeys.map(k => [k, Array.from(collectDependencies(new Set<string>(), k, citations)).sort()])
-          ) as any,
-          acknowledgments: acknowledgment,
-          bibtex: bibtex
-        };
-        console.log(JSON.stringify(output, null, 2));
-        return;
-      }
-
-      if (options.dependenciesOnly) {
-        console.log("Resolved Dependencies:");
-        console.log(sortedAllKeys.join('\n'));
-      } else if (options.acknowledgments) {
-        console.log(acknowledgment);
-      } else if (options.bibtex) {
-        console.log(bibtex);
-      } else {
-        console.log("Acknowledgments:");
-        console.log("---------------");
-        console.log(acknowledgment);
-        console.log("\nBibTeX entries:");
-        console.log("---------------");
-        console.log(bibtex);
-      }
-
-    } catch (error: any) {
-      console.error(`Error: ${error.message}`);
-      process.exit(1);
-    }
-  });
+        if (options.json) {
+            const output: CitationOutput = {
+                packages: selectedPackages,
+                timestamp: new Date().toISOString(),
+                dependencies,
+                acknowledgments,
+                bibtex
+            };
+            console.log(JSON.stringify(output, null, 2));
+        } else if (options.acknowledgments) {
+            console.log(acknowledgments);
+        } else if (options.bibtex) {
+            console.log(bibtex);
+        } else {
+            console.log('=== Acknowledgments ===');
+            console.log(acknowledgments);
+            console.log('\n=== BibTeX ===');
+            console.log(bibtex);
+        }
+    });

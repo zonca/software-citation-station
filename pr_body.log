@@ -1,0 +1,7 @@
+Implement SCS CLI Tool
+
+This PR implements the SCS CLI tool as described in the plan.
+- Extracted core logic to citationCore.js
+- Updated website to use shared logic
+- Implemented 'cite' and 'show' commands
+- Added caching and Zenodo integration

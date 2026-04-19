@@ -1,39 +1,51 @@
 import { Command } from 'commander';
-import { fetchCitations } from '../dataFetcher.js';
+import { parseBibtex } from '../../js/citationCore.js';
+import { fetchCitations, refreshCache } from '../dataFetcher.js';
 import { getZenodoVersionInfoCached } from '../zenodoFetcher.js';
-import { Citations } from '../types.js';
 
 export const showCommand = new Command('show')
-  .description('Display detailed package information')
-  .argument('<package>', 'Package name')
-  .option('--refresh-cache', 'Force refresh cached data')
-  .action(async (packageName: string, options: any) => {
-    try {
-      const citations: Citations = await fetchCitations(options.refreshCache);
-      
-      const match = Object.keys(citations).find(k => k.toLowerCase() === packageName.toLowerCase());
-      if (!match) {
-        console.error(`Error: Package "${packageName}" not found.`);
-        process.exit(1);
-      }
+    .description('Display detailed package information')
+    .argument('<package>', 'Package name')
+    .option('--refresh-cache', 'Force refresh cached data')
+    .action(async (packageName: string, options) => {
+        if (options.refreshCache) {
+            refreshCache();
+        }
 
-      const entry = citations[match];
-      console.log(`Package: ${match}`);
-      console.log(`Description: ${entry.description}`);
-      console.log(`Category: ${Array.isArray(entry.category) ? entry.category.join(', ') : entry.category}`);
-      console.log(`Language: ${Array.isArray(entry.language) ? entry.language.join(', ') : entry.language}`);
-      console.log(`Dependencies: ${entry.dependencies.length > 0 ? entry.dependencies.join(', ') : 'None'}`);
-      console.log(`Tags: ${entry.tags.join(', ')}`);
-      console.log(`Link: ${entry.link}`);
-      console.log(`Attribution: ${entry.attribution_link}`);
-      if (entry.zenodo_doi) {
-        console.log(`Zenodo DOI: ${entry.zenodo_doi}`);
-        const versions = await getZenodoVersionInfoCached(match, entry.zenodo_doi);
-        console.log(`Available Versions: ${versions.map(v => v.version).join(', ')}`);
-      }
+        const citationsData = await fetchCitations(options.refreshCache);
+        const packageKey = Object.keys(citationsData).find(
+            key => key.toLowerCase() === packageName.toLowerCase()
+        );
 
-    } catch (error: any) {
-      console.error(`Error: ${error.message}`);
-      process.exit(1);
-    }
-  });
+        if (!packageKey) {
+            console.error(`Error: Package '${packageName}' not found`);
+            process.exit(1);
+        }
+
+        const pkg = citationsData[packageKey];
+
+        console.log(`Package: ${packageKey}`);
+        console.log(`Description: ${pkg.description}`);
+        console.log(`Category: ${Array.isArray(pkg.category) ? pkg.category.join(', ') : pkg.category}`);
+        console.log(`Language: ${Array.isArray(pkg.language) ? pkg.language.join(', ') : pkg.language}`);
+        console.log(`Dependencies: ${pkg.dependencies && pkg.dependencies.length > 0 ? pkg.dependencies.join(', ') : 'None'}`);
+        console.log(`Tags: ${pkg.tags.join(', ')}`);
+        console.log(`Link: ${pkg.link}`);
+        console.log(`Attribution: ${pkg.attribution_link}`);
+        console.log(`Zenodo DOI: ${pkg.zenodo_doi || 'None'}`);
+
+        if (pkg.zenodo_doi) {
+            try {
+                const versionData = await getZenodoVersionInfoCached(packageKey, pkg.zenodo_doi, options.refreshCache);
+                const versions = versionData.versions.map(v => v.version).join(', ');
+                console.log(`Available Versions: ${versions}`);
+            } catch (error) {
+                console.log('Available Versions: Unable to fetch');
+            }
+        }
+
+        if (pkg.feature_tags) {
+            const features = Object.keys(pkg.feature_tags).join(', ');
+            console.log(`Features: ${features}`);
+        }
+    });
